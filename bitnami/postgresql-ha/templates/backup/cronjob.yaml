@@ -79,16 +79,16 @@ spec:
                 value: {{ .Values.service.ports.postgresql | quote }}
               - name: PGDUMP_DIR
                 value: {{ .Values.backup.cronjob.storage.mountPath }}
-              {{- if .Values.postgresql.tls.enabled }}
+              {{- if .Values.pgpool.tls.enabled }}
               - name:  PGSSLROOTCERT
-                values: {{ include "postgresql-ha.pgpool.tlsCACert" . }}
+                values: {{ printf "/certs/%s" .Values.pgpool.tls.certCAFilename}}
               {{- end }}
             command: {{- include "common.tplvalues.render" (dict "value" .Values.backup.cronjob.command "context" $) | nindent 14 }}
             volumeMounts:
               - name: empty-dir
                 mountPath: /tmp
                 subPath: tmp-dir
-              {{- if .Values.postgresql.tls.enabled }}
+              {{- if .Values.pgpool.tls.enabled }}
               - name: certs
                 mountPath: /certs
               {{- end }}
@@ -106,6 +106,11 @@ spec:
           volumes:
             - name: empty-dir
               emptyDir: {}
+            {{- if .Values.pgpool.tls.enabled }}
+            - name: certs
+              secret:
+                secretName: {{ include "postgresql-ha.tlsSecretName" . }}
+            {{- end }}
             {{- if .Values.backup.cronjob.storage.existingClaim }}
             - name: datadir
               persistentVolumeClaim:
